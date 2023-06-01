@@ -1,16 +1,18 @@
 #include <raylib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
 #define FPS 60
-#define SCREENW 900
-#define SCREENH 900
+#define SCREENW 1280
+#define SCREENH 1020
 #define MAPSIZE 20
 #define TILESIZE SCREENH/MAPSIZE
-#define PIHALVES PI/2
+
+/* https://lodev.org/cgtutor/raycasting.html */
 
 Color GRUVGREY = {29, 32, 33, 255};
 
-float px = 159, py = 345, pa = .75;
+/* Initial Position */
 
 
 int map[MAPSIZE][MAPSIZE]= {
@@ -36,141 +38,123 @@ int map[MAPSIZE][MAPSIZE]= {
   {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
 };
 
-
-void drawMap(int map[MAPSIZE][MAPSIZE]){
-  for (int i = 0; i < MAPSIZE; i++){
-    for (int j = 0; j < MAPSIZE; j++){
-      Color color = GRUVGREY;
-      if (map[i][j] == 1)
-	color = GRAY;
-      if (map[i][j] == 2){
-	//map[i][j] = 0;
-	color = SKYBLUE;
-      }
-      DrawRectangle((j * TILESIZE)+1, (i * TILESIZE)+1, TILESIZE-2, TILESIZE-2, color);
-    }
-  }
-}
-void drawPlayer(){
-
-  /* Controls */
-
-  if (IsKeyDown(KEY_W)){
-    py += sin(pa);
-    px += cos(pa);
-  }
-  if (IsKeyDown(KEY_S)){
-    py -= sin(pa);
-    px -= cos(pa);
-  }
-    if (IsKeyDown(KEY_D)){
-      pa += 0.01;
-      if (pa >= 2*PI){
-	pa = 0;
-      }
-    }
-    if (IsKeyDown(KEY_A)){
-      pa -= 0.01;
-      if (pa < 0){
-	pa = 2*PI;
-      }
-    }
-
-    Vector3 playerPos = {px, py, pa};
-    Vector2 playerPos2 = {playerPos.x, playerPos.y};
-    Vector2 tile = {(int)px % 45, (int)py % 45};
-    
-    float tanAng = tan(pa);
-    float invTanAng = (float)1/tanAng;
-
-#define ITERATIONS 5
-
-    Vector2 xPositive = { TILESIZE, TILESIZE * tanAng};
-    Vector2 yPositive = { TILESIZE * invTanAng, TILESIZE};
-    
-    Vector2 xPositiveShift = { TILESIZE - tile.x, TILESIZE * tanAng - tile.x * tanAng };
-    Vector2 xNegativeShift = { 0 - tile.x, 0 - tile.x * tanAng };
-    Vector2 yPositiveShift = { TILESIZE * invTanAng - tile.y * invTanAng, TILESIZE - tile.y };
-    Vector2 yNegativeShift = { - tile.y * invTanAng, - tile.y };
-
-    bool wallX = false;
-    bool wallY = false;
-    for (int i = 0; i < 10; i++){
-      if (!wallX){
-	if (pa < PIHALVES || pa > 3*PIHALVES){	
-	  Vector2 endX = {playerPos.x + xPositiveShift.x + i*xPositive.x, playerPos.y + xPositiveShift.y + i*xPositive.y};
-	  //DrawLineEx(playerPos2, endX, 6, GREEN);
-	  DrawRectangle(endX.x-5, endX.y-5, 10, 10, BLUE);
-	  Vector2 wallTileX = {(int)(endX.x+1)/(int)(TILESIZE), (int)(endX.y+1)/(int)(TILESIZE)};
-	  if (map[(int)wallTileX.y][(int)wallTileX.x] == 1){
-	    wallX = true;
-	  }
-	} else {
-	  Vector2 endX = {playerPos.x + xNegativeShift.x - i*xPositive.x, playerPos.y + xNegativeShift.y - i*xPositive.y};
-	  //DrawLineEx(playerPos2, endX, 6, GREEN);
-	  DrawRectangle(endX.x-5, endX.y-5, 10, 10, BLUE);
-	  Vector2 wallTileX = {(int)(endX.x)/(int)(TILESIZE), (int)(endX.y)/(int)(TILESIZE)};
-	  if (map[(int)wallTileX.y][(int)wallTileX.x] == 1){
-	    wallX = true;
-	  }
-	}
-      } 
-      if (!wallY){
-	if (pa < PI){
-	  Vector2 endY = {playerPos.x + yPositiveShift.x + i*yPositive.x, playerPos.y + yPositiveShift.y + i*yPositive.y};
-	  //DrawLineEx(playerPos2, endY, 4, ORANGE);
-	  DrawRectangle(endY.x-5, endY.y-5, 10, 10, RED);
-	  Vector2 wallTileY = {(int)(endY.x)/(int)(TILESIZE), (int)(endY.y)/(int)(TILESIZE)};
-	  if (map[(int)wallTileY.y][(int)wallTileY.x] == 1){
-	    wallY = true;
-	  }
-	} else if (pa != 0) {
-	  Vector2 endY = {playerPos.x + yNegativeShift.x - i*yPositive.x, playerPos.y + yNegativeShift.y - i*yPositive.y};
-	  // DrawLineEx(playerPos2, endY, 4, ORANGE);
-	  DrawRectangle(endY.x-5, endY.y-5, 10, 10, RED);
-	  Vector2 wallTileY = {(int)(endY.x)/(int)(TILESIZE), (int)(endY.y)/(int)(TILESIZE)};
-	  if (map[(int)wallTileY.y][(int)wallTileY.x] == 1){
-	    wallY = true;
-	    
-	  }
-	}
-      } 
-    }
-    DrawText(TextFormat("x: %.2f\ty: %.2f\ta: %.2f", px, py, pa), 600, 800, 20, RAYWHITE);
-
-    DrawLineEx((Vector2){px, py}, (Vector2){px + TILESIZE *  cos(pa), py + TILESIZE * sin(pa)}, 1, RED); /*Player Direction Ray*/
-    DrawRectangle(px-5, py-5, 10, 10, YELLOW); /* Player Sprite Location */
-    
-}
-
-double length(Vector2 start, Vector2 end){
-  int xDiff = (end.x - start.x);
-  int yDiff = (end.y - start.y);
-
-  int xDiff2 = xDiff * xDiff;
-  int yDiff2 = yDiff * yDiff;
-  double distance = sqrt((double)xDiff2 + (double)yDiff2);
-  return distance;
-  }
-
-void drawRay(){
-  float rayX, rayY;
-  DrawLine(px, py, rayX, rayY, RED);
-}
-
 int main(){
+  float pa = PI;
+  float px = 5, py = 10;
+  double dirX = -1, dirY = 0;
+  double planeX = 0, planeY = 0.66;
 
-  InitWindow(SCREENW, SCREENH, "Raycaster Test");
-
+  InitWindow(SCREENW, SCREENH, "Raycaster");
   SetTargetFPS(FPS);
   while (!WindowShouldClose()){
     BeginDrawing();
     ClearBackground(BLACK);
-    drawMap(map);
-    drawPlayer();
+
+    
+  
+    for(int x = 0; x < SCREENW; x++){
+      double cameraX = 2 * x / (double)SCREENW - 1;
+      double rayDirX = dirX + planeX * cameraX;
+      double rayDirY = dirY + planeY * cameraX;
+      
+      int mapX = (int)px;
+      int mapY = (int)py;
+      
+      double sideDistX, sideDistY;
+      
+      double deltaDistX = (rayDirX == 0) ? 1e30 : fabs(1/rayDirX);
+      double deltaDistY = (rayDirY == 0) ? 1e30 : fabs(1/rayDirY);
+      double perpWallDist;
+      
+      int stepX, stepY;
+      int hit = 0;
+      int side;
+      
+      if (rayDirX < 0){
+	stepX = -1;
+	sideDistX = (px - mapX) * deltaDistX;
+      } else {
+	stepX = 1;
+	sideDistX = (mapX + 1 - px) * deltaDistX;
+      }
+      if (rayDirY < 0){
+	stepY = -1;
+	sideDistY = (py - mapY) * deltaDistY;
+      } else {
+	stepY = 1;
+	sideDistY = (mapY + 1 - py) * deltaDistY;
+      }
+      
+      
+      while (hit == 0){
+	if (sideDistX < sideDistY){
+	  sideDistX += deltaDistX;
+	  mapX += stepX;
+	  side = 0;
+	} else {
+	  sideDistY += deltaDistY;
+	  mapY += stepY;
+	  side = 1;
+	}
+	if (map[mapY][mapX] > 0){
+	  hit = 1;
+	}
+      }
+      if (side == 0){
+	perpWallDist = (sideDistX - deltaDistX);
+      } else {
+	perpWallDist = (sideDistY - deltaDistY);
+      }
+      int lineHeight = (int)(SCREENH / perpWallDist);
+      int drawStart = -lineHeight/2 + SCREENH/2;
+      if (drawStart < 0)
+	drawStart = 0;
+      int drawEnd = lineHeight / 2 + SCREENH / 2;
+      if (drawEnd >= SCREENH)
+	drawEnd = SCREENH - 1;
+      Color color = WHITE;
+      if (perpWallDist > 15){
+	color = GRUVGREY;
+      }
+      else if (perpWallDist > 10){
+	color = GRAY;
+      } else if (perpWallDist > 5){
+	color = LIGHTGRAY;
+      }
+      
+      DrawLineEx((Vector2){x, drawStart}, (Vector2){x, drawEnd}, 1, color);
+      
+    }
+    double frametime = GetFrameTime();
+    double moveSpeed = frametime * 5.0;
+    double rotSpeed = frametime * 3.0;
+    if (IsKeyDown(KEY_W)){
+      py += dirY * moveSpeed;
+      px += dirX * moveSpeed;
+    }
+    if (IsKeyDown(KEY_S)){
+      py -= dirY * moveSpeed;
+      px -= dirX * moveSpeed;
+    }
+    if (IsKeyDown(KEY_D)){
+      double oldDirX = dirX;
+      dirX = dirX * cos(-rotSpeed) - dirY * sin(-rotSpeed);
+      dirY = oldDirX * sin(-rotSpeed) + dirY * cos(-rotSpeed);
+      double oldPlaneX = planeX;
+      planeX = planeX * cos(-rotSpeed) - planeY * sin(-rotSpeed);
+      planeY = oldPlaneX * sin(-rotSpeed) + planeY * cos(-rotSpeed);
+    }
+    if (IsKeyDown(KEY_A)){
+      double oldDirX = dirX;
+      dirX = dirX * cos(rotSpeed) - dirY * sin(rotSpeed);
+      dirY = oldDirX * sin(rotSpeed) + dirY * cos(rotSpeed);
+      double oldPlaneX = planeX;
+      planeX = planeX * cos(rotSpeed) - planeY * sin(rotSpeed);
+      planeY = oldPlaneX * sin(rotSpeed) + planeY * cos(rotSpeed);
+    }
     EndDrawing();
   }
   CloseWindow();
   return 0;
 }
-
+ 

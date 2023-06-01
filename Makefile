@@ -1,2 +1,4 @@
 raycast: main.c
-	gcc -lraylib -lm main.c -o raycast
+	cc -lraylib -lm main.c -o raycast.out -Wall -std=c11 -g
+clean:
+	rm *.out -rf
